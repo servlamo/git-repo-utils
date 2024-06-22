@@ -163,7 +163,7 @@ def _getGroupProjects(prefixUrl, groupId, token):
                 result["out"].append(str(group["name"]))
         if printLog == "all" or printLog == "debug" or printLog == "trace":
             dt = time.ctime()
-            print(dt + " Список подгрупп для групп id " + groupId + ":")
+            print(dt + " Список подгрупп для группы с id: " + groupId + ":")
             print( result["out"] )
     else:
         result["status"] = False
@@ -253,42 +253,38 @@ def _createSubGroup(prefixUrl, groupId, groupName, token):
         print("     groupId: " + groupId)
         print("     groupName: " + groupName)
     subgroup_path = groupName.lower()
-    if not resQuery["status"]:
-        d = dict(
-            path=subgroup_path,
-            name=groupName,
-            parent_id=groupId,
-            visibility="private"
-        )
-        data = urllib.parse.urlencode(d).encode("utf-8")
-        headers = {
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-        }
-        url = prefixUrl + "/groups/"
-        resQuery = _sendUrlRequest(
-            url,
-            sslCheck=False,
-            data=data,
-            method='POST',
-            headers=headers
-        )
-        if resQuery["status"]:
-            result["status"] = True
-            result["comment"] = "Group " + groupName + " was created"
-            result["out"] = resQuery["out"]
-            if printLog == "all" or printLog == "debug" or printLog == "trace":
-                dt = time.ctime()
-                print(dt + " Группа с именем " + groupName + " в группе с  id: " + groupId + " создана")
-        else:
-            result["status"] = False
-            result["comment"] = resQuery["comment"]
-            if printLog == "all" or printLog == "debug" or printLog == "trace":
-                dt = time.ctime()
-                print(dt + " Группа с именем " + groupName + " в группе с  id: " + groupId + " не  создана")
-    else:
+    d = dict(
+        path=subgroup_path,
+        name=groupName,
+        parent_id=groupId,
+        visibility="private"
+    )
+    data = urllib.parse.urlencode(d).encode("utf-8")
+    headers = {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+    }
+    url = prefixUrl + "/groups/"
+    resQuery = _sendUrlRequest(
+        url,
+        sslCheck=False,
+        data=data,
+        method='POST',
+        headers=headers
+    )
+    if resQuery["status"]:
         result["status"] = True
-        result["comment"] = "Group " + groupName + " already exists"
+        result["comment"] = "Group " + groupName + " was created"
+        result["out"] = resQuery["out"]
+        if printLog == "all" or printLog == "debug" or printLog == "trace":
+            dt = time.ctime()
+            print(dt + " Группа с именем " + groupName + " в группе с  id: " + groupId + " создана")
+    else:
+        result["status"] = False
+        result["comment"] = resQuery["comment"]
+        if printLog == "all" or printLog == "debug" or printLog == "trace":
+            dt = time.ctime()
+            print(dt + " Группа с именем " + groupName + " в группе с  id: " + groupId + " не  создана")
     if printLog == "all" or printLog == "trace":
         print(result)
     return result
@@ -364,12 +360,11 @@ def _gitClone(cloneDir, url, token, project_path, bare=True):
     if result["status"]:
         result = cmdRun("rm -Rf " + cloneDir, shell=False)
     result = cmdRun("mkdir -p " + cloneDir, shell=False)
+    url_path = "https://" + url + ":" + token + '@' + url + "/" + project_path
     if bare:
-        cmd = "git clone --bare https://" \
-            + url + ":" + token + '@' + url + "/" + project_path + " ."
+        cmd = "git clone --bare " + url_path + " ."
     else:
-        cmd = "git clone https://" \
-            + url + ":" + token + '@' + url + "/" + project_path + " ."
+        cmd = "git clone " + url_path + " ."
     result = cmdRun(cmd, cwd=cloneDir, shell=False)
     if printLog == "all" or printLog == "trace":
         print(result)
@@ -491,7 +486,7 @@ def _getProjectInfo(prefixUrl, groupId, projectName, token):
     return result
 
 
-def _createProject(prefixUrl, groupId, projectName, token):
+def _createProject(prefixUrl, groupId, projectName, projectPath, token):
     """
     Создает проект и
     Возвращает True в поле status если проект создан
@@ -513,7 +508,7 @@ def _createProject(prefixUrl, groupId, projectName, token):
     resQuery = _projectExists(prefixUrl, groupId, projectName, token)
     if not resQuery["status"]:
         d = dict(
-            path=projectName,
+            path=projectPath,
             name=projectName,
             namespace_id=groupId,
             visibility="private"
@@ -639,6 +634,16 @@ def _gitMirrorLevel(
     global params
     prefixUrl1 = "https://" + url1 + "/api/v4/"
     prefixUrl2 = "https://" + url2 + "/api/v4/"
+    if printLog == "all" or printLog == "debug" or printLog == "trace":
+        dt = time.ctime()
+        print(dt + " Запускаем процедуру клонирования проектов и групп(без вложенных) из: " + prefixUrl1 + parent1Id + " в: " + prefixUrl2 + parent2Id)
+    if printLog == "all" or printLog == "trace":
+        print("Function param's  params set to: ")
+        print("     cloneDir: " + cloneDir)
+        print("     url1: " + url1)
+        print("     parant1Id: " + parant1Id)
+        print("     url2: " + url2)
+        print("     parant2Id: " + parant2Id)
     FirstLevelSubGroups = _getFirstLevelSubGroups(
         prefixUrl1,
         parent1Id,
@@ -654,22 +659,19 @@ def _gitMirrorLevel(
                 result = _createSubGroup(
                     prefixUrl2, parent2Id, groupName, token2
                 )
-                if printLog == "all" or printLog == "debug" or printLog == "trace":
-                    dt = time.ctime()
-                    print(dt + " subGroup '" + groupName + "' created")
             else:
                 if printLog == "all" or printLog == "debug" or printLog == "trace":
                     dt = time.ctime()
-                    print(dt + " subGroup '" + groupName + "' already exists")
+                    print(dt + " Подгруппа '" + groupName + "' уже создана")
         resultGroup = {
             "changes": FirstLevelSubGroups["out"],
-            "comment": "git mirror level subGroups success",
+            "comment": "Процедура создания групп этого уровня завершена",
         }
 
     else:
         resultGroup = {
             "changes": [],
-            "comment": "git group doesn't have subGroups",
+            "comment": "Группа источника не содержит подгрупп",
         }
     GroupProjects = _getGroupProjects(prefixUrl1, parent1Id, token1)
     if not GroupProjects == []:
@@ -680,8 +682,9 @@ def _gitMirrorLevel(
             result = _getProjectInfo(
                 prefixUrl1, parent1Id, projectName, token1
             )
+            projectPath = result["out"]["path"]
             project_path = result["out"]["namespace"]["full_path"] + \
-                "/" + projectName + ".git"
+                "/" + projectPath + ".git"
             if printLog == "all" or printLog == "debug" or printLog == "trace":
                 dt = time.ctime()
                 print(dt + " git clone repository '" + projectName +
@@ -706,17 +709,17 @@ def _gitMirrorLevel(
                     result = _deleteProject(prefixUrl2, projectId, token2)
                     if printLog == "all" or printLog == "debug" or printLog == "trace":
                         dt = time.ctime()
-                        print(dt + " Delete repository with ID: " + projectId)
+                        print(dt + " Waiting for delete repository with ID: " + projectId)
+                    time.sleep(120)
                 else:
                     if printLog == "all" or printLog == "debug" or printLog == "trace":
                         dt = time.ctime()
                         print(dt + " Repository doesn't exists")
-                time.sleep(300)
                 if printLog == "all" or printLog == "debug" or printLog == "trace":
                     dt = time.ctime()
                     print(dt + " New Repository will be created")
                 result = _createProject(
-                    prefixUrl2,  parent2Id, projectName, token2
+                    prefixUrl2,  parent2Id, projectName, projectPath, token2
                 )
                 if printLog == "all" or printLog == "debug" or printLog == "trace":
                     dt = time.ctime()
@@ -733,7 +736,7 @@ def _gitMirrorLevel(
                     projectId = str(result["out"]["id"])
                     path_with_namespace = \
                         result["out"]["namespace"]["full_path"] + \
-                        "/" + projectName
+                        "/" + result["out"]["path"]
                     if printLog == "all" or printLog == "debug" or printLog == "trace":
                         dt = time.ctime()
                         print(dt + " Mirroring new repository with full path: "
@@ -753,90 +756,92 @@ def _gitMirrorLevel(
                         print(dt + " Delete temporary path and files ")
                     result = cmdRun("rm -Rf " + cloneDir, shell=False)
                 if result["status"]:
-                    for source in params["addFiles"]:
-                        name = source["name"]
-                        find = False
-                        for target in source["targets"]:
-                            branch = target["branch"]
-                            if target["targetRepo"] in project_path:
-                                find = True
-                                if "targetPath" in target:
-                                    targetPath = target["targetPath"]
-                                else:
-                                    targetPath = ""
+                    if 'addFiles' in params
+                        for source in params["addFiles"]:
+                            name = source["name"]
+                            find = False
+                            for target in source["targets"]:
+                                branch = target["branch"]
+                                if target["targetRepo"] in project_path:
+                                    find = True
+                                    if "targetPath" in target:
+                                        targetPath = target["targetPath"]
+                                    else:
+                                        targetPath = ""
+                                    if printLog == "all" or printLog == "debug" or printLog == "trace":
+                                        dt = time.ctime()
+                                        print(dt + " git clone repository '" + projectName +
+                                              "' from source for add new files")
+                                    result = _gitClone(
+                                        cloneDir=cloneDir,
+                                        url=url2,
+                                        token=token2,
+                                        project_path=path_with_namespace + ".git",
+                                        bare = False
+                                    )
+                                    if result["status"]:
+                                        if printLog == "all" or printLog == "debug" or printLog == "trace":
+                                            dt = time.ctime()
+                                            print(dt + " git clone '" + projectName +
+                                                  "' success trying to add a new files")
+                                        if printLog == "all" or printLog == "debug" or printLog == "trace":
+                                            dt = time.ctime()
+                                            print(dt + " Переключаемся на ветку " + branch)
+                                        result = cmdRun("git checkout " + branch, cwd=cloneDir, shell=False)
+                                        if printLog == "all" or printLog == "debug" or printLog == "trace":
+                                            dt = time.ctime()
+                                            print(dt + " Копируем файл " + name)
+                                        result = cmdRun("cp -f " + " " + name + " " + cloneDir + targetPath, shell=False, nocwd=True)
+                                        if printLog == "all" or printLog == "debug" or printLog == "trace":
+                                            dt = time.ctime()
+                                            print(dt + " File " + name + " was added in branch: " + branch)
+                            if find:
                                 if printLog == "all" or printLog == "debug" or printLog == "trace":
                                     dt = time.ctime()
-                                    print(dt + " git clone repository '" + projectName +
-                                          "' from source for add new files")
-                                result = _gitClone(
-                                    cloneDir=cloneDir,
-                                    url=url2,
-                                    token=token2,
-                                    project_path=path_with_namespace + ".git",
-                                    bare = False
+                                    print(dt + " Фиксируем изменения в репозитории " + projectName)
+                                result = cmdRun("git config --global user.email '" + params["git"]["user"]["email"] + "'", shell=False)
+                                result = cmdRun("git config --global user.name '" + params["git"]["user"]["name"] + "'", shell=False)
+                                result = cmdRun("git add --all . ", cwd=cloneDir, shell=False)
+                                result = cmdRun("git commit -m 'Add new files after repository cloning'", cwd=cloneDir, shell=False)
+                                result = _gitPushRepo(
+                                    cloneDir,
+                                    url2,
+                                    token2,
+                                    path_with_namespace,
+                                    mirror=False,
+                                    options='-o ci.skip'
                                 )
-                                if result["status"]:
-                                    if printLog == "all" or printLog == "debug" or printLog == "trace":
-                                        dt = time.ctime()
-                                        print(dt + " git clone '" + projectName +
-                                              "' success trying to add a new files")
-                                    if printLog == "all" or printLog == "debug" or printLog == "trace":
-                                        dt = time.ctime()
-                                        print(dt + " Переключаемся на ветку " + branch)
-                                    result = cmdRun("git checkout " + branch, cwd=cloneDir, shell=False)
-                                    if printLog == "all" or printLog == "debug" or printLog == "trace":
-                                        dt = time.ctime()
-                                        print(dt + " Копируем файл " + name)
-                                    result = cmdRun("cp -f " + " " + name + " " + cloneDir + targetPath, shell=False, nocwd=True)
-                                    if printLog == "all" or printLog == "debug" or printLog == "trace":
-                                        dt = time.ctime()
-                                        print(dt + " File " + name + " was added in branch: " + branch)
-                        if find:
-                            if printLog == "all" or printLog == "debug" or printLog == "trace":
-                                dt = time.ctime()
-                                print(dt + " Фиксируем изменения в репозитории " + projectName)
-                            result = cmdRun("git config --global user.email '" + params["git"]["user"]["email"] + "'", shell=False)
-                            result = cmdRun("git config --global user.name '" + params["git"]["user"]["name"] + "'", shell=False)
-                            result = cmdRun("git add --all . ", cwd=cloneDir, shell=False)
-                            result = cmdRun("git commit -m 'Add new files after repository cloning'", cwd=cloneDir, shell=False)
-                            result = _gitPushRepo(
-                                cloneDir,
-                                url2,
-                                token2,
-                                path_with_namespace,
-                                mirror=False,
-                                options='-o ci.skip'
-                            )
-                        else:
-                            if printLog == "all":
-                                dt = time.ctime()
-                                print(dt + " Compare target with full path repository: ")
-                                print("        "  + "target: " + target["targetRepo"])
-                                print("        "  + "project path: " + project_path)
-                            if printLog == "all" or printLog == "trace":
-                                print(dt + " Compare target with full path repository unsuccessful!!! ")
-                    headers = {
-                        'Authorization': 'Bearer ' + token2,
-                        'Content-Type': 'application/json'
-                            }
-                    for source in params["addApiRequests"]:
-                        request = source["request"]
-                        method = source["method"]
-                        preffix = source["preffix"]
-                        data = source["data"].encode("utf-8")
-                        for target in source["targets"]:
-                            if target["targetRepo"] in project_path:
-                                url = prefixUrl2 + preffix + projectId + request
-                                resQuery = _sendUrlRequest(
-                                    url,
-                                    sslCheck=False,
-                                    data=data,
-                                    method=method,
-                                    headers=headers
-                                )
-                                if ( printLog == "all" or printLog == "debug" or printLog == "trace") and result["status"]:
+                            else:
+                                if printLog == "all":
                                     dt = time.ctime()
-                                    print(dt + " Webhook was added in repo: " + target["targetRepo"])
+                                    print(dt + " Compare target with full path repository: ")
+                                    print("        "  + "target: " + target["targetRepo"])
+                                    print("        "  + "project path: " + project_path)
+                                if printLog == "all" or printLog == "trace":
+                                    print(dt + " Compare target with full path repository unsuccessful!!! ")
+                headers = {
+                    'Authorization': 'Bearer ' + token2,
+                    'Content-Type': 'application/json'
+                        }
+                    if 'addApiRequests' in params:
+                        for source in params["addApiRequests"]:
+                            request = source["request"]
+                            method = source["method"]
+                            preffix = source["preffix"]
+                            data = source["data"].encode("utf-8")
+                            for target in source["targets"]:
+                                if target["targetRepo"] in project_path:
+                                    url = prefixUrl2 + preffix + projectId + request
+                                    resQuery = _sendUrlRequest(
+                                        url,
+                                        sslCheck=False,
+                                        data=data,
+                                        method=method,
+                                        headers=headers
+                                    )
+                                    if ( printLog == "all" or printLog == "debug" or printLog == "trace") and result["status"]:
+                                        dt = time.ctime()
+                                        print(dt + " Webhook was added in repo: " + target["targetRepo"])
                 result = {
                     "name": parent1Id,
                     "changes": {"Projects": GroupProjects["out"],
@@ -922,6 +927,8 @@ def _gitCloneTree(
                     subGroup,
                     token2
             )
+            if printLog == "all" or printLog == "trace":
+                print(sgTarget)
             sgTargetId = str(sgTarget["out"]["id"])
             if printLog == "all" or printLog == "debug" or printLog == "trace":
                 dt = time.ctime()
@@ -994,4 +1001,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
