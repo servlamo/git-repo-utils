@@ -172,7 +172,7 @@ def _getGroupProjects(prefixUrl, groupId, token):
 
 def _subGroupExists(prefixUrl, groupId, groupName, token):
     """
-    Возвращает True если подгруппа существует
+    Возвращает True в поле status, если подгруппа существует
     """
     if printLog == "all" or printLog == "debug" or printLog == "trace":
         dt = time.ctime()
@@ -246,7 +246,7 @@ def _createSubGroup(prefixUrl, groupId, groupName, token):
     }
     if printLog == "all" or printLog == "debug" or printLog == "trace":
         dt = time.ctime()
-        print(dt + " Запускаем процедуру создания подгруппы с именем " + groupName + " в группе с  id: " + groupId + " не существует")
+        print(dt + " Запускаем процедуру создания подгруппы с именем " + groupName + " в группе с  id: " + groupId)
     if printLog == "all" or printLog == "trace":
         print("Param's set to: ")
         print("     prefixUrl: " + prefixUrl)
@@ -641,9 +641,9 @@ def _gitMirrorLevel(
         print("Function param's  params set to: ")
         print("     cloneDir: " + cloneDir)
         print("     url1: " + url1)
-        print("     parant1Id: " + parant1Id)
+        print("     parent1Id: " + parent1Id)
         print("     url2: " + url2)
-        print("     parant2Id: " + parant2Id)
+        print("     parent2Id: " + parent2Id)
     FirstLevelSubGroups = _getFirstLevelSubGroups(
         prefixUrl1,
         parent1Id,
@@ -662,7 +662,7 @@ def _gitMirrorLevel(
             else:
                 if printLog == "all" or printLog == "debug" or printLog == "trace":
                     dt = time.ctime()
-                    print(dt + " Подгруппа '" + groupName + "' уже создана")
+                    print(dt + " Подгруппа '" + groupName + "' уже существует")
         resultGroup = {
             "changes": FirstLevelSubGroups["out"],
             "comment": "Процедура создания групп этого уровня завершена",
@@ -756,8 +756,8 @@ def _gitMirrorLevel(
                         print(dt + " Delete temporary path and files ")
                     result = cmdRun("rm -Rf " + cloneDir, shell=False)
                 if result["status"]:
-                    if 'addFiles' in params
-                        for source in params["addFiles"]:
+                    if 'addFiles' in params:
+                        for source in params.get("addFiles"):
                             name = source["name"]
                             find = False
                             for target in source["targets"]:
