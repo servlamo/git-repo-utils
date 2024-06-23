@@ -853,11 +853,11 @@ def _gitMirrorLevel(
                                         print("        "  + "project path: " + project_path)
                                     if printLog == "all" or printLog == "trace":
                                         print(dt + " Compare target with full path repository unsuccessful!!! ")
-                    headers = {
-                        'Authorization': 'Bearer ' + token2,
-                        'Content-Type': 'application/json'
-                            }
                         if 'addApiRequests' in params:
+                            headers = {
+                                'Authorization': 'Bearer ' + token2,
+                                'Content-Type': 'application/json'
+                                    }
                             for source in params["addApiRequests"]:
                                 request = source["request"]
                                 method = source["method"]
@@ -945,47 +945,51 @@ def _gitCloneTree(
     if printLog == "all" or printLog == "debug" or printLog == "trace":
         dt = time.ctime()
         print(dt + " Level mirroring completed")
-    subGroups = _getFirstLevelSubGroups(
-                prefixUrl1, parent1Id, token1
-            )["out"]
-    result = {"changes": {"subGroups": subGroups}}
-    if not result["changes"]["subGroups"] == []:
-        for subGroup in result["changes"]["subGroups"]:
-            if printLog == "all" or printLog == "debug" or printLog == "trace":
-                dt = time.ctime()
-                print(dt + " Source and Target subGroupName: " + subGroup)
-            subGroupId = str(
-                _getGroupInfo(
-                    prefixUrl1,
-                    parent1Id,
-                    subGroup,
-                    token1
-                )["out"]["id"]
-            )
-            if printLog == "all" or printLog == "debug" or printLog == "trace":
-                dt = time.ctime()
-                print(dt + " Source subGroupId: " + subGroupId)
-            sgTarget = _getGroupInfo(
-                    prefixUrl2,
-                    parent2Id,
-                    subGroup,
-                    token2
-            )
-            if printLog == "all" or printLog == "trace":
-                print(sgTarget)
-            sgTargetId = str(sgTarget["out"]["id"])
-            if printLog == "all" or printLog == "debug" or printLog == "trace":
-                dt = time.ctime()
-                print(dt + " Target subGroupId: " + sgTargetId)
-            _gitCloneTree(
-                cloneDir=cloneDir,
-                url1=url1,
-                token1=token1,
-                parent1Id=subGroupId,
-                url2=url2,
-                token2=token2,
-                parent2Id=sgTargetId
-            )
+    if not mirrorMode == 'restore':
+        subGroups = _getFirstLevelSubGroups(
+                    prefixUrl1, parent1Id, token1
+                )["out"]
+        result = {"changes": {"subGroups": subGroups}}
+        if not result["changes"]["subGroups"] == []:
+            for subGroup in result["changes"]["subGroups"]:
+                if printLog == "all" or printLog == "debug" or printLog == "trace":
+                    dt = time.ctime()
+                    print(dt + " Processing subGroupName: " + subGroup)
+                subGroupId = str(
+                    _getGroupInfo(
+                        prefixUrl1,
+                        parent1Id,
+                        subGroup,
+                        token1
+                    )["out"]["id"]
+                )
+                if printLog == "all" or printLog == "debug" or printLog == "trace":
+                    dt = time.ctime()
+                    print(dt + " Source subGroupId: " + subGroupId)
+                if not mirrorMode == 'backup':
+                    sgTarget = _getGroupInfo(
+                            prefixUrl2,
+                            parent2Id,
+                            subGroup,
+                            token2
+                    )
+                    if printLog == "all" or printLog == "trace":
+                        print(sgTarget)
+                    sgTargetId = str(sgTarget["out"]["id"])
+                    if printLog == "all" or printLog == "debug" or printLog == "trace":
+                        dt = time.ctime()
+                        print(dt + " Target subGroupId: " + sgTargetId)
+                else:
+                    print(dt + " Target directory: " + cloneDir + "/" + subGroup)
+                _gitCloneTree(
+                    cloneDir=cloneDir + "/" + subGroup,
+                    url1=url1,
+                    token1=token1,
+                    parent1Id=subGroupId,
+                    url2=url2,
+                    token2=token2,
+                    parent2Id=sgTargetId
+                )
     return "Finished"
 
 
