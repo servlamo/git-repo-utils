@@ -356,10 +356,10 @@ def _gitClone(cloneDir, url, token, project_path, bare=True):
         print("     cloneDir: " + cloneDir)
         print("     url: " + url)
         print("     path: " + project_path)
-    result = cmdRun("test -d " + cloneDir, cwd="/", shell=False)
+    result = cmdRun("test -d '" + cloneDir + "'", cwd="/", shell=False)
     if result["status"]:
-        result = cmdRun("rm -Rf " + cloneDir, shell=False)
-    result = cmdRun("mkdir -p " + cloneDir, shell=False)
+        result = cmdRun("rm -Rf '" + cloneDir + "'", shell=False)
+    result = cmdRun("mkdir -p '" + cloneDir + "'", shell=False)
     url_path = "https://" + url + ":" + token + '@' + url + "/" + project_path
     if bare:
         cmd = "git clone --bare " + url_path + " ."
@@ -676,15 +676,15 @@ def _gitMirrorLevel(
                             dt = time.ctime()
                             print(dt + " Подгруппа '" + groupName + "' уже существует")
                 else:
-                    result = cmdRun("mkdir -p " + cloneDir + "/" + groupName, shell=False)
+                    result = cmdRun("mkdir -p '" + cloneDir + "/" + groupName + "'", shell=False)
                     if not result["status"]:
                         if printLog == "all" or printLog == "debug" or printLog == "trace":
                             dt = time.ctime()
-                            print(dt + " Директория '" + cloneDir + "/" + groupName + "' создана")
+                            print(dt + " Директория " + cloneDir + "/" + groupName + " создана")
                     else:
                         if printLog == "all" or printLog == "debug" or printLog == "trace":
                             dt = time.ctime()
-                            print(dt + " Директория '" + cloneDir + "/" + groupName + "' не создана")
+                            print(dt + " Директория " + cloneDir + "/" + groupName + " не создана")
             if not mirrorMode == 'backup':
                 resultGroup = {
                     "changes": FirstLevelSubGroups["out"],
@@ -788,7 +788,7 @@ def _gitMirrorLevel(
                         if printLog == "all" or printLog == "debug" or printLog == "trace":
                             dt = time.ctime()
                             print(dt + " Delete temporary path and files ")
-                        result = cmdRun("rm -Rf " + cloneDir + "/" + projectName, shell=False)
+                        result = cmdRun("rm -Rf '" + cloneDir + "/" + projectName + "'", shell=False)
                     if result["status"]:
                         if 'addFiles' in params:
                             for source in params.get("addFiles"):
@@ -821,11 +821,11 @@ def _gitMirrorLevel(
                                             if printLog == "all" or printLog == "debug" or printLog == "trace":
                                                 dt = time.ctime()
                                                 print(dt + " Переключаемся на ветку " + branch)
-                                            result = cmdRun("git checkout " + branch, cwd=cloneDir + "/" + projectName, shell=False)
+                                            result = cmdRun("git checkout " + branch, cwd="'" + cloneDir + "/" + projectName + "'", shell=False)
                                             if printLog == "all" or printLog == "debug" or printLog == "trace":
                                                 dt = time.ctime()
                                                 print(dt + " Копируем файл " + name)
-                                            result = cmdRun("cp -f " + " " + name + " " + cloneDir + "/" + projectName + targetPath, shell=False, nocwd=True)
+                                            result = cmdRun("cp -f " + " " + name + " '" + cloneDir + "/" + projectName + targetPath + "'", shell=False, nocwd=True)
                                             if printLog == "all" or printLog == "debug" or printLog == "trace":
                                                 dt = time.ctime()
                                                 print(dt + " File " + name + " was added in branch: " + branch)
@@ -978,9 +978,12 @@ def _gitCloneTree(
                     sgTargetId = str(sgTarget["out"]["id"])
                     if printLog == "all" or printLog == "debug" or printLog == "trace":
                         dt = time.ctime()
-                        print(dt + " Target subGroupId: " + sgTargetId)
+                        print(dt + " Processing target subGroupId: " + sgTargetId)
                 else:
-                    print(dt + " Target directory: " + cloneDir + "/" + subGroup)
+                    sgTargetId = ""
+                    if printLog == "all" or printLog == "debug" or printLog == "trace":
+                        dt = time.ctime()
+                    print(dt + " Processing target directory: " + cloneDir + "/" + subGroup)
                 _gitCloneTree(
                     cloneDir=cloneDir + "/" + subGroup,
                     url1=url1,
